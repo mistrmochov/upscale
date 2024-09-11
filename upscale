@@ -1,10 +1,10 @@
 #!/bin/bash
 function dep-check() {
-    if command -v nala >/dev/null 2>&1; then
+    if ! command -v nala >/dev/null 2>&1; then
         sudo apt install nala -y
     fi
-    if command -v dw >/dev/null 2>&1; then
-        if command -v pipx >/dev/null 2>&1; then
+    if ! command -v dw >/dev/null 2>&1; then
+        if ! command -v pipx >/dev/null 2>&1; then
             sudo nala install python3-full python3-pip pipx -y
         fi
         pipx install downloader-cli
@@ -14,17 +14,17 @@ function dep-check() {
             export PATH="$PATH:/home/$USER/.local/bin"
         fi
     fi
-    if command -v unzip >/dev/null 2>&1; then
+    if ! command -v unzip >/dev/null 2>&1; then
         sudo nala install unzip -y
     fi
-    if command -v ffmpeg >/dev/null 2>&1; then
+    if ! command -v ffmpeg >/dev/null 2>&1; then
         echo "ffmpeg is not installed, installing.."
         sudo nala install ffmpeg -y
     fi
-    if command -v bc >/dev/null 2>&1; then
+    if ! command -v bc >/dev/null 2>&1; then
         sudo nala install bc -y
     fi
-    if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+    if ! command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
         echo "waifu2x-ncnn-vulkan is not installed, installing.."
         if ! [ -d ~/Downloads ]; then
             mkdir ~/Downloads
@@ -40,15 +40,15 @@ function dep-check() {
             export PATH="$PATH:/home/$USER/waifu2x-ncnn-vulkan"
         fi
     fi
-    if command -v ffmpeg >/dev/null 2>&1; then
+    if ! command -v ffmpeg >/dev/null 2>&1; then
         echo "ffmpeg hasn't been installed successfully, can't procceed."
         exit
     fi
-    if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+    if ! command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
         echo "waifu2x-ncnn-vulkan hasn't been installed successfully, can't procceed."
         exit
     fi
-    if command -v bc >/dev/null 2>&1; then
+    if ! command -v bc >/dev/null 2>&1; then
         echo "bc hasn't been installed successfully, can't procceed."
         exit
     fi
