@@ -116,7 +116,7 @@ if [ -f "/etc/os-release" ]; then
                         fps=$(echo "$fps_get" | bc -l | awk '{printf("%d\n", $1)}')
                         ffmpeg -r "$fps" -i ~/upscale/upscaled_frames/frame_%04d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p "~/upscale/video.${file_ext}"
                         ffmpeg -i "$video" -q:a 0 -map a ~/upscale/audio.mp3
-                        
+
                         filename=$(basename -- "$video")
                         base_name="${filename%.*}"
                         extension="${filename##*.}"
@@ -125,11 +125,11 @@ if [ -f "/etc/os-release" ]; then
                         ffmpeg -i "~/upscale/video.${file_ext}" -i ~/upscale/audio.mp3 -c:v copy -c:a aac -strict experimental "$new_video"
 
                         echo "Video has been upscaled successfully and is located at ~/upscale/$new_video"
-                        echo "Cleaning up.."
-                        rm -rf ~/upscale/frames/*
-                        rm -rf ~/upscale/upscaled_frames/*
-                        rm -rf ~/upscale/audio.mp3
-                        rm -rf "~/upscale/video.${file_ext}"
+                        # echo "Cleaning up.."
+                        # rm -rf ~/upscale/frames/*
+                        # rm -rf ~/upscale/upscaled_frames/*
+                        # rm -rf ~/upscale/audio.mp3
+                        # rm -rf "~/upscale/video.${file_ext}"
                     fi
                 fi
             fi
