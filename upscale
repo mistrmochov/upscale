@@ -1,6 +1,4 @@
 #!/bin/bash
-dw=""
-waifu=""
 function dep-check() {
     if command -v nala >/dev/null 2>&1; then
         sudo apt install nala -y
@@ -10,7 +8,11 @@ function dep-check() {
             sudo nala install python3-full python3-pip pipx -y
         fi
         pipx install downloader-cli
-        dw="~/.local/bin/dw"
+        if [[ ":$PATH:" != *":/home/$USER/.local/bin:"* ]]; then
+            echo "~/.local/bin is not in your PATH, the script will add it for this session, but you will have to add \
+            it manually later in order to use it."
+            export PATH="$PATH:/home/$USER/.local/bin"
+        fi
     fi
     if command -v unzip >/dev/null 2>&1; then
         sudo nala install unzip -y
@@ -19,17 +21,36 @@ function dep-check() {
         echo "ffmpeg is not installed, installing.."
         sudo nala install ffmpeg -y
     fi
+    if command -v bc >/dev/null 2>&1; then
+        sudo nala install bc -y
+    fi
     if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
         echo "waifu2x-ncnn-vulkan is not installed, installing.."
         if ! [ -d ~/Downloads ]; then
             mkdir ~/Downloads
         fi
         echo "Downloading the program.."
-        $dw https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20220728/waifu2x-ncnn-vulkan-20220728-ubuntu.zip ~/Downloads
-        echo "Extraxting the program.."
+        dw https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20220728/waifu2x-ncnn-vulkan-20220728-ubuntu.zip ~/Downloads
+        echo "Extracting the program.."
         unzip ~/Downloads/waifu2x-ncnn-vulkan-20220728-ubuntu.zip -d ~/
         mv ~/waifu2x-ncnn-vulkan-20220728-ubuntu ~/waifu2x-ncnn-vulkan
-        waifu=""
+        if [[ ":$PATH:" != *":/home/$USER/waifu2x-ncnn-vulkan:"* ]]; then
+            echo "~/waifu2x-ncnn-vulkan is not in your PATH, the script will add it for this session, but you will have to add \
+            it manually later in order to use it."
+            export PATH="$PATH:/home/$USER/waifu2x-ncnn-vulkan"
+        fi
+    fi
+    if command -v ffmpeg >/dev/null 2>&1; then
+        echo "ffmpeg hasn't been installed successfully, can't procceed."
+        exit
+    fi
+    if command -v waifu2x-ncnn-vulkan >/dev/null 2>&1; then
+        echo "waifu2x-ncnn-vulkan hasn't been installed successfully, can't procceed."
+        exit
+    fi
+    if command -v bc >/dev/null 2>&1; then
+        echo "bc hasn't been installed successfully, can't procceed."
+        exit
     fi
 }
 if [ -f "/etc/os-release" ]; then
@@ -39,7 +60,78 @@ if [ -f "/etc/os-release" ]; then
         if ! [ $OS = "ubuntu" ]; then
             echo "The program only supports Ubuntu for now."
         else
-            
+            dep-check
+            if [ -z "$1" ]; then
+                echo "Please provide a media file."
+            else
+                if [ ! -f "$1" ]; then
+                    echo "File does not exist!"
+                else
+                    ffprobe "$1" &>/dev/null
+                    if [ $? -ne 0 ]; then
+                        echo "The provided file is not a valid media file."
+                    else
+                        echo "The provided file is a valid media file. Proceeding..."
+                        video="$1"
+                        if ! [ -d ~/upscale ]; then
+                            mkdir ~/upscale
+                        fi
+                        if ! [ -d ~/upscale/frames ]; then
+                            mkdir ~/upscale/frames
+                        fi
+                        if ! [ -d ~/upscale/upscaled_frames ]; then
+                            mkdir ~/upscale/upscaled_frames
+                        fi
+                        ffmpeg -i "$video" -qscale:v 2 ~/upscale/frames/frame_%04d.png
+                        if [ -z "$2" ]; then
+                            scale="4"
+                        elif [[ "$2" = "1" || "$2" = "2" || "$2" = "4" || "$2" = "8" || "$2" = "16" || "$2" = "32" ]]; then
+                            scale="$2"
+                        else
+                            scale="4"
+                        fi
+                        if [ -z "$3" ]; then
+                            noise="2"
+                        elif [[ "$3" = "-1" || "$3" = "0" || "$3" = "1" || "$3" = "2" || "$3" = "3" ]]; then
+                            noise="$3"
+                        else
+                            noise="2"
+                        fi
+                        waifu2x-ncnn-vulkan -i ~/upscale/frames/ -o ~/upscale/upscaled_frames/ -s "$scale" -n "$noise"
+
+                        file_ext="${video##*.}"
+
+                        if [[ "$file_ext" == "mkv" ]]; then
+                            echo "The file is an MKV."
+                        elif [[ "$file_ext" == "mp4" ]]; then
+                            echo "The file is an MP4."
+                        elif [[ "$file_ext" == "mov" ]]; then
+                            echo "The file is a MOV."
+                        else
+                            echo "The file is neither MKV, MP4, nor MOV."
+                            exit
+                        fi
+
+                        fps_get=$(ffprobe -v 0 -select_streams v:0 -show_entries stream=r_frame_rate -of default=noprint_wrappers=1:nokey=1 "$video")
+                        fps=$(echo "$fps_get" | bc -l | awk '{printf("%d\n", $1)}')
+                        ffmpeg -r "$fps" -i upscaled_frames/frame_%04d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p "~/upscale/video.${file_ext}"
+                        ffmpeg -i "$video" -q:a 0 -map a ~/upscale/audio.mp3
+
+                        base_name="${video%.*}"
+                        extension="${video##*.}"
+                        new_video="${base_name}_U.${extension}"
+
+                        ffmpeg -i "~/upscale/video.${file_ext}" -i ~/upscale/audio.mp3 -c:v copy -c:a aac -strict experimental "$new_video"
+
+                        echo "Video has been upscaled successfully and is located at ~/upscale/$new_video"
+                        echo "Cleaning up.."
+                        rm -rf ~/upscale/frames/*
+                        rm -rf ~/upscale/upscaled_frames/*
+                        rm -rf ~/upscale/audio.mp3
+                        rm -rf "~/upscale/video.${file_ext}"
+                    fi
+                fi
+            fi
         fi
     fi
 fi
