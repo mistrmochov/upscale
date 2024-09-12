@@ -122,9 +122,9 @@ if [ -f "/etc/os-release" ]; then
                         extension="${filename##*.}"
                         new_video="${base_name}_U.${extension}"
 
-                        ffmpeg -i ~/upscale/video.$file_ext -i ~/upscale/audio.mp3 -c:v copy -c:a aac -strict experimental ~/upscale/$new_video
+                        ffmpeg -i ~/upscale/video.$file_ext -i ~/upscale/audio.mp3 -c:v copy -c:a aac -strict experimental ~/upscale/"$new_video"
 
-                        echo "Video has been upscaled successfully and is located at ~/upscale/$new_video"
+                        echo "Video has been upscaled successfully and is located at ~/upscale/'$new_video'"
                         echo "Cleaning up.."
                         rm -rf ~/upscale/frames/*
                         rm -rf ~/upscale/upscaled_frames/*
